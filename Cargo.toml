@@ -14,3 +14,4 @@ path = "src/main.rs"
 
 [dependencies]
 colored = "1.9.3"
+rand = "0.7.3"
