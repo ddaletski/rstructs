@@ -2,6 +2,7 @@ use std::collections::LinkedList;
 use std::hash::Hasher;
 use std::collections::hash_map::DefaultHasher;
 use colored::Colorize;
+use std::ops::Index;
 
 
 #[derive(Debug)]
@@ -29,8 +30,7 @@ pub struct HashTable<K, V>
 }
 
 impl<K, V> HashTable<K, V> 
-where K: Eq + std::hash::Hash + std::fmt::Debug,
-V: std::fmt::Debug
+where K: Eq + std::hash::Hash
 {
     pub fn new() -> HashTable<K, V> {
         let mut container: Vec<Bucket<K, V>> = Vec::new();
@@ -81,6 +81,18 @@ V: std::fmt::Debug
         hasher.finish()
     }
 }
+
+impl<K, V> Index<&K> for HashTable<K, V> 
+where K: Eq + std::hash::Hash
+{
+    type Output = V;
+
+    fn index(&self, key: &K) -> &Self::Output {
+        self.get(key).expect("entry not found")
+    }
+}
+
+
 
 #[cfg(test)]
 mod tests {
@@ -135,10 +147,37 @@ mod tests {
             let idx = rng.gen_range(0, 10);
             let (k, v) = pairs[idx];
 
-            let value_in_table = ht.get(k);
+            let value_in_table_get = ht.get(k);
+            let value_in_table_index = ht[k];
 
-            assert_ne!(value_in_table, None);
-            assert_eq!(value_in_table, Some(v));
+            assert_eq!(value_in_table_get, Some(v));
+            assert_eq!(value_in_table_index, *v);
         }
+    }
+
+    #[test]
+    fn get_nonexisting_returns_none() {
+        let rng = 1..=10;
+        let keys: Vec<i32> = rng.collect();
+        let values: Vec<i32> = keys.iter().map(|k| k * 10 + 1).collect();
+
+        let mut ht = HashTable::<i32, i32>::new();
+        for (k, v) in keys.iter().zip(values.iter()) {
+            ht.insert(*k, *v);
+        }
+
+        for ne_key in (1..=10).map(|k| k * 31) {
+            let expected_none = ht.get(&ne_key);
+
+            assert_eq!(expected_none, None);
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "entry not found")]
+    fn index_nonexisting_panics() {
+        let ht = HashTable::<i32, i32>::new();
+
+        ht[&10];
     }
 }
